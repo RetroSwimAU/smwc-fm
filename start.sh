@@ -15,6 +15,8 @@ export DISPLAY=:99
 # Wait for everything to start up
 sleep 5
 
+x11vnc -display :99 -nopw -listen 0.0.0.0 -forever &
+
 # Start Chromium in background, visiting the radio site
 chromium-browser --no-sandbox --autoplay-policy=no-user-gesture-required --user-data-dir=/tmp/chromium-data \
   --window-size=1280,720 \
