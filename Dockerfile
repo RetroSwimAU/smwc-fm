@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     npm \
     chromium-browser \
     alsa-utils \
+    x11vnc \
     --no-install-recommends
 
 # Install Puppeteer
@@ -28,5 +29,6 @@ COPY radio-playback.js /radio-playback.js
 RUN chmod +x /start.sh
 
 EXPOSE 8000
+EXPOSE 5900
 
 CMD ["/start.sh"]
