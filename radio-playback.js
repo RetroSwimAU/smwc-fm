@@ -15,7 +15,7 @@ function updateIcecastTrack(track) {
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: '/usr/bin/chromium-browser',
+    executablePath: '/usr/bin/chromium',
     headless: false,
     args: [
       '--no-sandbox',
@@ -43,7 +43,7 @@ function updateIcecastTrack(track) {
   });
 
   // Wait for player interface to load
-  await page.waitForSelector('#spc-player-interface', { timeout: 15000 });
+  await page.waitForSelector('#spc-player-interface', { timeout: 0 });
 
   let lastTrack = '';
   setInterval(async () => {

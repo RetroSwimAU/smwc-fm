@@ -1,41 +1,48 @@
 #!/bin/bash
-
 set -e
 
-# Start PulseAudio (for audio routing)
-pulseaudio --start
-
-# Start IceCast
-service icecast2 start
-
-# Start Xvfb (virtual display, required for Chromium)
-Xvfb :99 -screen 0 1280x720x16 &
+export HOME=/home/radio
+# export PULSE_RUNTIME_PATH="$HOME/.pulse"
+# export PULSE_SERVER=unix:$PULSE_RUNTIME_PATH/native
 export DISPLAY=:99
 
-# Wait for everything to start up
-sleep 5
+# mkdir -p "$PULSE_RUNTIME_PATH"
+# chmod 700 "$PULSE_RUNTIME_PATH"
+
+# Start PulseAudio with user runtime dir
+pulseaudio --start --exit-idle-time=-1 --daemonize --log-target=stderr --system=false --disallow-exit
+
+sleep 2
+
+pactl load-module module-null-sink sink_name=radio_sink sink_properties=device.description="RadioSink"
+pactl set-default-sink radio_sink
+
+icecast2 -c /etc/icecast2/icecast.xml &
+
+Xvfb :99 -screen 0 1280x720x16 &
+sleep 2
 
 x11vnc -display :99 -nopw -listen 0.0.0.0 -forever &
+sleep 2
 
-# Start Chromium in background, visiting the radio site
-chromium-browser --no-sandbox --autoplay-policy=no-user-gesture-required --user-data-dir=/tmp/chromium-data \
+chromium --no-sandbox --autoplay-policy=no-user-gesture-required --user-data-dir="$HOME/chromium-data" \
   --window-size=1280,720 \
   --disable-gpu \
   --disable-software-rasterizer \
-  \"https://www.smwcentral.net/?p=section&s=smwmusic\" &
-
-# Wait a bit for Chromium to launch
+  "https://www.smwcentral.net/?p=section&s=smwmusic" &
 sleep 10
 
-# Start Puppeteer script (automates playback and song title updates)
-node /radio-playback.js &
-
-# Wait a bit for audio to start
+node /app/radio-playback.js &
 sleep 10
 
-# Find PulseAudio monitor source (for ffmpeg)
-MONITOR_SOURCE=$(pactl list sources short | grep 'monitor' | awk '{print $2}' | head -n 1)
+MONITOR_SOURCE=$(pactl list sources short | grep 'radio_sink.monitor' | awk '{print $2}')
+if [ -z "$MONITOR_SOURCE" ]; then
+  echo "Monitor source not found! Available sources:"
+  pactl list sources short
+  exit 1
+fi
 
-# Start ffmpeg to stream audio to IceCast
-ffmpeg -f pulse -i \"$MONITOR_SOURCE\" -vn -c:a libmp3lame -b:a 128k -content_type audio/mpeg \
+ffmpeg -f pulse -i "$MONITOR_SOURCE" -vn -c:a libmp3lame -b:a 128k -content_type audio/mpeg \
   -f mp3 icecast://source:hackme@localhost:8000/stream
+
+
