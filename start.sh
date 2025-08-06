@@ -29,11 +29,12 @@ chromium --no-sandbox --autoplay-policy=no-user-gesture-required --user-data-dir
   --window-size=1280,720 \
   --disable-gpu \
   --disable-software-rasterizer \
+  --remote-debugging-port=9222 \
   "https://www.smwcentral.net/?p=section&s=smwmusic" &
+
 sleep 10
 
 node /app/radio-playback.js &
-sleep 10
 
 MONITOR_SOURCE=$(pactl list sources short | grep 'radio_sink.monitor' | awk '{print $2}')
 if [ -z "$MONITOR_SOURCE" ]; then
@@ -42,7 +43,5 @@ if [ -z "$MONITOR_SOURCE" ]; then
   exit 1
 fi
 
-ffmpeg -f pulse -i "$MONITOR_SOURCE" -vn -c:a libmp3lame -b:a 128k -content_type audio/mpeg \
+ffmpeg -f pulse -i "$MONITOR_SOURCE" -vn -c:a libmp3lame -b:a 160k -content_type audio/mpeg \
   -f mp3 icecast://source:hackme@localhost:8000/stream
-
-
